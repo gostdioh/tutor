@@ -2,8 +2,9 @@
 
 Tutor: the docker-based Open edX distribution designed for peace of mind
 ========================================================================
+MFE
+|https://github.com/overhangio/tutor-mfe
 
-|
 
 .. image:: https://overhang.io/static/img/tutor-logo.svg
   :alt: Tutor logo
