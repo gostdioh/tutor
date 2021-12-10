@@ -44,11 +44,19 @@ RUN git config --global user.email "tutor@overhang.io" \
 {{ patch("openedx-dockerfile-git-patches-default") }}
 {% else %}
 # Patch edx-platform
-# Security patch: https://github.com/edx/edx-platform/pull/28442
-RUN git fetch https://github.com/edx/edx-platform 8ecc1903ca9170a719c0e63e99fb231822eb26d8 && git cherry-pick 8ecc1903ca9170a719c0e63e99fb231822eb26d8
+# edx-proctoring security fix https://github.com/edx/edx-platform/pull/29347/
+RUN git fetch --depth=2 https://github.com/edx/edx-platform d61dcac29d1651956623c150be53a8bbe69e9346 \
+  && git cherry-pick d61dcac29d1651956623c150be53a8bbe69e9346
+# Fix "from" address in course bulk emails
+# https://github.com/edx/edx-platform/pull/29001
+RUN git fetch --depth=4 https://github.com/bitmakerla/edx-platform 6b0e9f50e9425d17cd62d1b3e9d1cab220e3fe7f \
+  && git cherry-pick 01216d9e0637a2260b4c264bda2f22c1e34b38de \
+  && git cherry-pick a057853a85560759d1d922b00db110207252c6a2 \
+  && git cherry-pick 6b0e9f50e9425d17cd62d1b3e9d1cab220e3fe7f
+
 {% endif %}
 
-{# Example: RUN git fetch https://github.com/edx/edx-platform <GITSHA1> && git cherry-pick <GITSHA1> #}
+{# Example: RUN git fetch --depth=2 https://github.com/edx/edx-platform <GITSHA1> && git cherry-pick <GITSHA1> #}
 {{ patch("openedx-dockerfile-post-git-checkout") }}
 
 ###### Download extra locales to /openedx/locale/contrib/locale
@@ -80,9 +88,6 @@ RUN pip install setuptools==44.1.0 pip==20.0.2 wheel==0.34.2
 # Install base requirements
 RUN pip install -r ./requirements/edx/base.txt
 
-# Install scorm xblock
-RUN pip install "openedx-scorm-xblock<13.0.0,>=12.0.0"
-
 # Install django-redis for using redis as a django cache
 RUN pip install django-redis==4.12.1
 
@@ -96,6 +101,9 @@ COPY ./requirements/ /openedx/requirements
 RUN cd /openedx/requirements/ \
   && touch ./private.txt \
   && pip install -r ./private.txt
+
+{% for extra_requirements in OPENEDX_EXTRA_PIP_REQUIREMENTS %}RUN pip install '{{ extra_requirements }}'
+{% endfor %}
 
 ###### Install nodejs with nodeenv in /openedx/nodeenv
 FROM python as nodejs-requirements

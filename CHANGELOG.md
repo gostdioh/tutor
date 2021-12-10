@@ -2,8 +2,25 @@
 
 Note: Breaking changes between versions are indicated by "💥".
 
-## Unreleased
+## v12.2.0 (2021-12-08)
 
+- [Bugfix] Fix incorrect "from" address in course bulk emails (see [pull request](https://github.com/edx/edx-platform/pull/29001)).
+- 💥[Improvement] Fail on incorrect image name argument in `images build/pull/push/printtag` commands.
+- [Bugfix] Remove trailing slashes in docker-compose files for [compatibility with docker-compose v2 in WSL](https://github.com/docker/compose/issues/8558).
+- [Improvement] `settheme` now works with preview domain.
+- [Feature] Allow specifying extra pip packages through config.yml.
+
+## v12.1.7 (2021-11-18)
+
+- [Security] Timed exam security fix [29347](https://github.com/edx/edx-platform/pull/29347).
+- [Feature] Add [tutor-richie](https://github.com/overhangio/tutor-richie) to the plugins that are bundled with the tutor binary.
+- [Improvement] Make `tutor plugins list` print plugins sorted by name.
+- [Improvement] Ignore Python plugins which cannot be loaded.
+- [Bugfix] When configured with `RUN_FORUM: false`, omit forum-related [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/) from the manifests that `tutor k8s` generates. (#525)
+
+## v12.1.6 (2021-11-02)
+
+- [Improvement] Upgrade all services to open-release/lilac.3.
 - [Feature] Make it possible to override job configuration in development: if they exist, `dev/docker-compose.jobs.yml` and `dev/docker-compose.jobs.override.yml` will be loaded when running jobs.
 - [Improvement] Faster `tutor local start` by building only necessary images.
 
