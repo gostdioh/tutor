@@ -1,15 +1,13 @@
 import os
 import shutil
-from typing import List
 import urllib.request
+from typing import List
 
 import click
 
 from .. import config as tutor_config
 from .. import env as tutor_env
-from .. import exceptions
-from .. import fmt
-from .. import plugins
+from .. import exceptions, fmt, plugins
 from .context import Context
 
 
@@ -28,7 +26,7 @@ def plugins_command() -> None:
 @click.command(name="list", help="List installed plugins")
 @click.pass_obj
 def list_command(context: Context) -> None:
-    config = tutor_config.load_user(context.root)
+    config = tutor_config.load_full(context.root)
     for plugin in plugins.iter_installed():
         status = "" if plugins.is_enabled(config, plugin.name) else " (disabled)"
         print(
@@ -42,7 +40,7 @@ def list_command(context: Context) -> None:
 @click.argument("plugin_names", metavar="plugin", nargs=-1)
 @click.pass_obj
 def enable(context: Context, plugin_names: List[str]) -> None:
-    config = tutor_config.load_user(context.root)
+    config = tutor_config.load_minimal(context.root)
     for plugin in plugin_names:
         plugins.enable(config, plugin)
         fmt.echo_info("Plugin {} enabled".format(plugin))
@@ -59,7 +57,7 @@ def enable(context: Context, plugin_names: List[str]) -> None:
 @click.argument("plugin_names", metavar="plugin", nargs=-1)
 @click.pass_obj
 def disable(context: Context, plugin_names: List[str]) -> None:
-    config = tutor_config.load_user(context.root)
+    config = tutor_config.load_minimal(context.root)
     disable_all = "all" in plugin_names
     for plugin in plugins.iter_enabled(config):
         if disable_all or plugin.name in plugin_names:

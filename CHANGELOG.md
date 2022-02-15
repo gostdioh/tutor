@@ -2,9 +2,89 @@
 
 Note: Breaking changes between versions are indicated by "💥".
 
+## Unreleased
+
+## v13.1.5 (2022-02-14)
+
+- [Improvement] Upgrade all services to open-release/maple.2.
+
+## v13.1.4 (2022-02-08)
+
+- [Security] Fix vulnerability in redirect url during authentication (see [commit](https://github.com/overhangio/edx-platform/commit/06550411e34c04376fa3d757e1f068f464f816e6)).
+
+## v13.1.3 (2022-02-01)
+
+- [Security] Fix vulnerability in call to invalid enrollment API (see [commit](https://github.com/openedx/edx-platform/commit/a140c674799c527e961e37c5e46cb7dc1ffef5ac)).
+- [Bugfix] Fix "Internal Server Error / AttributeError / object has no attribute 'get_metadata'" in learning MFE.
+- [Improvement] Replace all links to github.com/edx by github.com/openedx, following the migration of all repositories.
+- [Bugfix] Fix `k8s start caddy` command.
+
+## v13.1.2 (2022-01-30)
+
+- [Bugfix] Fix auto-renewal of certificates revoked by Let's Encrypt (see [discussion](https://community.letsencrypt.org/t/questions-about-renewing-before-tls-alpn-01-revocations/170449/21)).
+
+## v13.1.1 (2022-01-25)
+
+- [Bugfix] Fix authentication in development due to missing SameSite policy on session ID cookie.
+- [Bugfix] Display properly themed favicon.ico image in LMS, Studio and microfrontends.
+- [Bugfix] Fix "LazyStaticAbsoluteUrl is not JSON serializable" error when sending bulk emails.
+- [Bugfix] Fix `tutor local importdemocourse` fails when platform is not up.
+
+## v13.1.0 (2022-01-08)
+
+- [Improvement] Provide much more comprehensive instructions when upgrading.
+- [Bugfix] During upgrade, make sure that environment is up-to-date prior to prompting to rebuild the custom images.
+- [Bugfix] Fix ownership of mysql data, in particular when upgrading a Kubernetes cluster to Maple.
+- [Bugfix] Ensure that ``tutor k8s upgrade`` is run during ``tutor k8s quickstart``, when necessary.
+- 💥[Bugfix] By default, detect the current version during ``tutor k8s/local upgrade``.
+- [Bugfix] Fix upgrading from Lilac to Maple on Kubernetes by deleting deployments and services.
+
+## v13.0.3 (2022-01-04)
+
+- [Security] Upgrade Django to 3.2.11 in edx-platform.
+- [Security] Prevent non-staff users from searching usernames by email by abusing the logout url.
+
+## v13.0.2 (2021-12-22)
+
+- [Security] Prevent non-staff users from searching usernames by email.
+
+## v13.0.1 (2021-12-20)
+
+- [Bugfix] Missing requirements file in `pip install tutor[full]`.
+
+## v13.0.0 (2021-12-20)
+
+- 💥[Improvement] Upgrade to Maple
+  - Install all official plugins as part of the `tutor[full]` package.
+  - Don't print error messages about loading plugins during autocompletion.
+  - Prompt for image building when upgrading from one release to the next.
+  - 💥 Allow concurrent logins to the LMS and the CMS.
+  - Add `tutor local start --skip-build` option to skip building Docker images.
+- [Feature] Better support of Caddy as a load balancer in Kubernetes:
+  - Make it possible to start/stop a selection of resources with ``tutor k8s start/stop [names...]``.
+  - Make it easy to deploy an independent LoadBalancer by converting the caddy service to a ClusterIP when ``ENABLE_WEB_PROXY=false``.
+  - Add a ``app.kubernetes.io/component: loadbalancer`` label to the LoadBalancer service.
+  - Add ``app.kubernetes.io/name`` labels to all services.
+  - Preserve the LoadBalancer service in ``tutor k8s stop`` commands.
+  - Wait for the caddy deployment to be ready before running initialisation jobs.
+  - Fix running Caddy container in k8s, which should always be the case even if `ENABLE_WEB_PROXY` is false.
+- [Security] On Kubernetes, convert all NodePort services to ClusterIP to guarantee network isolation from outside the cluster.
+- 💥[Improvement] Move the Open edX forum to a [dedicated plugin](https://github.com/overhangio/tutor-forum/) (#450).
+- 💥[Improvement] Drop Python 3.5 compatibility.
+- 💥[Bugfix] No longer track the Tutor version number in resource labels (and label selectors, which breaks the update of Deployment resources), but instead do so in resource annotations.
+- 💥[Improvement] Get rid of the "tutor-openedx" package, which is no longer supported.
+- 💥[Improvement] Run all services as unprivileged containers, for better security. This has multiple consequences:
+  - The "openedx-dev" image is now built with `tutor dev dc build lms`.
+  - The "smtp" service now runs the "devture/exim-relay" Docker image, which is unprivileged. Also, the default SMTP port is now 8025.
+- 💥[Feature] Get rid of the nginx container and service, which is now replaced by Caddy. this has the following consequences:
+    - Patches "nginx-cms", "nginx-lms", "nginx-extra", "local-docker-compose-nginx-aliases" are replaced by "caddyfile-cms", "caddyfile-lms", "caddyfile", " local-docker-compose-caddy-aliases".
+    - Patches "k8s-deployments-nginx-volume-mounts", "k8s-deployments-nginx-volumes" were obsolete and are removed.
+    - The `NGINX_HTTP_PORT` setting is renamed to `CADDY_HTTP_PORT`.
+- [Bugfix] Fix building of the `openedx` image on ARM64 due to missing `libgeos-dev`
+
 ## v12.2.0 (2021-12-08)
 
-- [Bugfix] Fix incorrect "from" address in course bulk emails (see [pull request](https://github.com/edx/edx-platform/pull/29001)).
+- [Bugfix] Fix incorrect "from" address in course bulk emails (see [pull request](https://github.com/openedx/edx-platform/pull/29001)).
 - 💥[Improvement] Fail on incorrect image name argument in `images build/pull/push/printtag` commands.
 - [Bugfix] Remove trailing slashes in docker-compose files for [compatibility with docker-compose v2 in WSL](https://github.com/docker/compose/issues/8558).
 - [Improvement] `settheme` now works with preview domain.
@@ -12,7 +92,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v12.1.7 (2021-11-18)
 
-- [Security] Timed exam security fix [29347](https://github.com/edx/edx-platform/pull/29347).
+- [Security] Timed exam security fix [29347](https://github.com/openedx/edx-platform/pull/29347).
 - [Feature] Add [tutor-richie](https://github.com/overhangio/tutor-richie) to the plugins that are bundled with the tutor binary.
 - [Improvement] Make `tutor plugins list` print plugins sorted by name.
 - [Improvement] Ignore Python plugins which cannot be loaded.
@@ -61,7 +141,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v12.0.4 (2021-08-12)
 
-- [Security] Apply security patch [28442](https://github.com/edx/edx-platform/pull/28442).
+- [Security] Apply security patch [28442](https://github.com/openedx/edx-platform/pull/28442).
 
 ## v12.0.3 (2021-08-10)
 
@@ -108,7 +188,7 @@ Note: Breaking changes between versions are indicated by "💥".
 ## v11.2.10 (2021-05-17)
 
 - [Security] Apply Django security patches by upgrading from 2.2.20 to 2.2.23.
-- [Bugfix] Fix video unit completion (see [pull request](https://github.com/edx/edx-platform/pull/27230)).
+- [Bugfix] Fix video unit completion (see [pull request](https://github.com/openedx/edx-platform/pull/27230)).
 
 ## v11.2.9 (2021-05-12)
 
@@ -122,7 +202,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v11.2.7 (2021-04-23)
 
-- [Security] Apply security patch [27394](https://github.com/edx/edx-platform/pull/27394).
+- [Security] Apply security patch [27394](https://github.com/openedx/edx-platform/pull/27394).
 - [Feature] Add patches to extend python requirements installation process in openedx and openedx-dev Dockerfiles.
 - [Improvement] Apply edx-platform patches during Docker image build using tutor patch 'openedx-dockerfile-git-patches-default'.
 
@@ -151,7 +231,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v11.2.2 (2021-02-17)
 
-- [Security] Apply security patch [26592](https://github.com/edx/edx-platform/pull/26592).
+- [Security] Apply security patch [26592](https://github.com/openedx/edx-platform/pull/26592).
 
 ## v11.2.1 (2021-02-16)
 
@@ -163,16 +243,16 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v11.1.5 (2021-02-09)
 
-- [Security] Apply security patch [26432](https://github.com/edx/edx-platform/pull/26432).
+- [Security] Apply security patch [26432](https://github.com/openedx/edx-platform/pull/26432).
 - [Bugfix] Print warnings to stderr.
 
 ## v11.1.4 (2021-02-04)
 
-- [Security] Apply security patch [26358](https://github.com/edx/edx-platform/pull/26358).
+- [Security] Apply security patch [26358](https://github.com/openedx/edx-platform/pull/26358).
 
 ## v11.1.3 (2021-01-31)
 
-- [Security] Apply security patch [26253](https://github.com/edx/edx-platform/pull/26253).
+- [Security] Apply security patch [26253](https://github.com/openedx/edx-platform/pull/26253).
 
 ## v11.1.2 (2021-01-29)
 
@@ -182,7 +262,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 - [Feature] Add a `tutor images build --target=...` argument for [multi-stage Docker builds](https://docs.docker.com/develop/develop-images/multistage-build/).
 - [Feature] Create a test version of the openedx-dev Docker image for running edx-platform unit tests.
-- [Security] Apply security patch [26112](https://github.com/edx/edx-platform/pull/26112).
+- [Security] Apply security patch [26112](https://github.com/openedx/edx-platform/pull/26112).
 - [Bugfix] Fix `local exec` command which crashed with a `AttributeError`.
 
 ## v11.1.0 (2021-01-13)
@@ -192,11 +272,11 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v11.0.7 (2021-01-11)
 
-- [Security] Apply security patch [26029](https://github.com/edx/edx-platform/pull/26029).
+- [Security] Apply security patch [26029](https://github.com/openedx/edx-platform/pull/26029).
 
 ## v11.0.6 (2021-01-05)
 
-- [Security] Apply security patch [25974](https://github.com/edx/edx-platform/pull/25974).
+- [Security] Apply security patch [25974](https://github.com/openedx/edx-platform/pull/25974).
 
 ## v11.0.5 (2020-12-30)
 
@@ -212,11 +292,11 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v11.0.2 (2020-12-12)
 
-- [Bugfix] Fix missing celery tasks from edx-platform (see [upstream PR](https://github.com/edx/edx-platform/pull/25840)).
+- [Bugfix] Fix missing celery tasks from edx-platform (see [upstream PR](https://github.com/openedx/edx-platform/pull/25840)).
 
 ## v11.0.1 (2020-12-10)
 
-- [Security] Apply security patch [25834](https://github.com/edx/edx-platform/pull/25834).
+- [Security] Apply security patch [25834](https://github.com/openedx/edx-platform/pull/25834).
 - [Bugfix] Fix Android apk directory mount path.
 
 ## v11.0.0 (2020-12-09)
@@ -246,7 +326,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v10.5.3 (2020-12-09)
 
-- [Security] Apply upstream edx-platform [security patch](https://github.com/edx/edx-platform/pull/25782).
+- [Security] Apply upstream edx-platform [security patch](https://github.com/openedx/edx-platform/pull/25782).
 
 ## v10.5.2 (2020-12-07)
 
@@ -327,7 +407,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 - [Bugfix] Fix incorrect loading of some resources from localhost:18000 in development.
 - [Bugfix] Fix Samesite=None Secure=False cookie error for users accessing the LMS with the latest release of Google Chrome.
-- [Security] Apply javascript security patch ([pull request](https://github.com/edx/edx-platform/pull/24762)).
+- [Security] Apply javascript security patch ([pull request](https://github.com/openedx/edx-platform/pull/24762)).
 - [Bugfix] Fix "FileError" on Scorm package upload in Scorm XBlock.
 - 💥[Improvement] Serve openedx static assets with [whitenoise](http://whitenoise.evans.io/en/stable/) instead of nginx. This removes the `k8s-deployments-nginx-init-containers` patch. Plugins are encouraged to implement static asset serving with Whitenoise as well.
 - [Bugfix] Fix dependency on mysql service when mysql is not activated.
@@ -336,7 +416,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v10.1.0 (2020-07-23)
 
-- [Security] Apply edx-platform upstream xss security fixes ([pull request](https://github.com/edx/edx-platform/pull/24568)).
+- [Security] Apply edx-platform upstream xss security fixes ([pull request](https://github.com/openedx/edx-platform/pull/24568)).
 - 💥[Feature] Make it possible to override the docker registry for just a few services by setting `DOCKER_IMAGE_SERVICENAME` values.
 
 ## v10.0.11 (2020-07-16)
@@ -370,7 +450,7 @@ Note: Breaking changes between versions are indicated by "💥".
 
 ## v10.0.5 (2020-06-21)
 
-- [Security] Apply edx-platform upstream xss security fixes ([pull request](https://github.com/edx/edx-platform/pull/24258)).
+- [Security] Apply edx-platform upstream xss security fixes ([pull request](https://github.com/openedx/edx-platform/pull/24258)).
 
 ## v10.0.4 (2020-06-19)
 

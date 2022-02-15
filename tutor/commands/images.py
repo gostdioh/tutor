@@ -4,21 +4,16 @@ import click
 
 from .. import config as tutor_config
 from .. import env as tutor_env
-from .. import exceptions
-from .. import images
-from .. import plugins
+from .. import exceptions, images, plugins
 from ..types import Config
-from .. import utils
 from .context import Context
 
-BASE_IMAGE_NAMES = ["openedx", "forum"]
-DEV_IMAGE_NAMES = ["openedx-dev"]
+BASE_IMAGE_NAMES = ["openedx", "permissions"]
 VENDOR_IMAGES = [
     "caddy",
     "elasticsearch",
     "mongodb",
     "mysql",
-    "nginx",
     "redis",
     "smtp",
 ]
@@ -91,7 +86,7 @@ def build(
 @click.argument("image_names", metavar="image", nargs=-1)
 @click.pass_obj
 def pull(context: Context, image_names: List[str]) -> None:
-    config = tutor_config.load(context.root)
+    config = tutor_config.load_full(context.root)
     for image in image_names:
         pull_image(config, image)
 
@@ -100,7 +95,7 @@ def pull(context: Context, image_names: List[str]) -> None:
 @click.argument("image_names", metavar="image", nargs=-1)
 @click.pass_obj
 def push(context: Context, image_names: List[str]) -> None:
-    config = tutor_config.load(context.root)
+    config = tutor_config.load_full(context.root)
     for image in image_names:
         push_image(config, image)
 
@@ -109,7 +104,7 @@ def push(context: Context, image_names: List[str]) -> None:
 @click.argument("image_names", metavar="image", nargs=-1)
 @click.pass_obj
 def printtag(context: Context, image_names: List[str]) -> None:
-    config = tutor_config.load(context.root)
+    config = tutor_config.load_full(context.root)
     for image in image_names:
         to_print = []
         for _img, tag in iter_images(config, image, BASE_IMAGE_NAMES):
@@ -135,13 +130,6 @@ def build_image(root: str, config: Config, image: str, *args: str) -> None:
     for plugin, img, tag in iter_plugin_images(config, image, "build-image"):
         to_build.append(
             (tutor_env.pathjoin(root, "plugins", plugin, "build", img), tag, args)
-        )
-
-    # Build dev images with user id argument
-    dev_build_arg = ("--build-arg", "USERID={}".format(utils.get_user_id()))
-    for img, tag in iter_images(config, image, DEV_IMAGE_NAMES):
-        to_build.append(
-            (tutor_env.pathjoin(root, "build", img), tag, dev_build_arg + args)
         )
 
     if not to_build:
