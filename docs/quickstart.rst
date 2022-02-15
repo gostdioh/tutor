@@ -3,13 +3,13 @@
 Quickstart (1-click install)
 ----------------------------
 
-1. `Download <https://github.com/overhangio/tutor/releases>`_ the latest stable release of Tutor and place the ``tutor`` executable in your path. From the command line:
-
-.. include:: download/binary.rst
-
-Or:
+1. Install the latest stable release of Tutor from pip:
 
 .. include:: download/pip.rst
+
+Or `download <https://github.com/overhangio/tutor/releases>`_ the pre-compiled binary and place the ``tutor`` executable in your path:
+
+.. include:: download/binary.rst
 
 2. Run ``tutor local quickstart``
 3. You're done!
@@ -22,7 +22,7 @@ Yes :) This is what happens when you run ``tutor local quickstart``:
 2. Configuration files are generated from templates.
 3. Docker images are downloaded.
 4. Docker containers are provisioned.
-5. A full, production-ready Open edX platform (`Lilac <https://edx.readthedocs.io/projects/edx-installing-configuring-and-running/en/open-release-lilac.master/platform_releases/koa.html>`__ release) is run with docker-compose.
+5. A full, production-ready Open edX platform (`Maple <https://edx.readthedocs.io/projects/edx-installing-configuring-and-running/en/open-release-maple.master/platform_releases/maple.html>`__ release) is run with docker-compose.
 
 The whole procedure should require less than 10 minutes, on a server with a good bandwidth. Note that your host environment will not be affected in any way, since everything runs inside docker containers. Root access is not even necessary.
 

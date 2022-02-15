@@ -1,4 +1,3 @@
-import codecs
 import os
 from copy import deepcopy
 from typing import Any, Iterable, List, Optional, Type, Union
@@ -12,7 +11,7 @@ from .types import Config, ConfigValue
 
 TEMPLATES_ROOT = pkg_resources.resource_filename("tutor", "templates")
 VERSION_FILENAME = "version"
-BIN_FILE_EXTENSIONS = [".ico", ".jpg", ".png", ".ttf", ".woff", ".woff2"]
+BIN_FILE_EXTENSIONS = [".ico", ".jpg", ".patch", ".png", ".ttf", ".woff", ".woff2"]
 
 
 class JinjaEnvironment(jinja2.Environment):
@@ -59,6 +58,7 @@ class Renderer:
         environment.globals["rsa_import_key"] = utils.rsa_import_key
         environment.filters["rsa_private_key"] = utils.rsa_private_key
         environment.filters["walk_templates"] = self.walk_templates
+        environment.globals["HOST_USER_ID"] = utils.get_user_id()
         environment.globals["TUTOR_APP"] = __app__.replace("-", "_")
         environment.globals["TUTOR_VERSION"] = __version__
         self.environment = environment
@@ -138,9 +138,7 @@ class Renderer:
             try:
                 patches.append(self.render_str(patch))
             except exceptions.TutorError:
-                fmt.echo_error(
-                    "Error rendering patch '{}' from plugin {}".format(name, plugin)
-                )
+                fmt.echo_error(f"Error rendering patch '{name}' from plugin {plugin}")
                 raise
         rendered = separator.join(patches)
         if rendered:
@@ -192,9 +190,7 @@ class Renderer:
         try:
             return template.render(**self.config)
         except jinja2.exceptions.UndefinedError as e:
-            raise exceptions.TutorError(
-                "Missing configuration value: {}".format(e.args[0])
-            )
+            raise exceptions.TutorError(f"Missing configuration value: {e.args[0]}")
 
 
 def save(root: str, config: Config) -> None:
@@ -218,15 +214,13 @@ def save(root: str, config: Config) -> None:
             save_plugin_templates(plugin, root, config)
 
     upgrade_obsolete(root)
-    fmt.echo_info("Environment generated in {}".format(base_dir(root)))
+    fmt.echo_info(f"Environment generated in {base_dir(root)}")
 
 
-def upgrade_obsolete(root: str) -> None:
-    # tutor.conf was renamed to _tutor.conf in order to be the first config file loaded
-    # by nginx
-    nginx_tutor_conf = pathjoin(root, "apps", "nginx", "tutor.conf")
-    if os.path.exists(nginx_tutor_conf):
-        os.remove(nginx_tutor_conf)
+def upgrade_obsolete(_root: str) -> None:
+    """
+    Add here ad-hoc commands to upgrade the environment.
+    """
 
 
 def save_plugin_templates(
@@ -281,7 +275,7 @@ def render_unknown(config: Config, value: Any) -> Any:
     """
     if isinstance(value, str):
         return render_str(config, value)
-    elif isinstance(value, dict):
+    if isinstance(value, dict):
         return {k: render_unknown(config, v) for k, v in value.items()}
     return value
 
@@ -300,15 +294,12 @@ def render_str(config: Config, text: str) -> str:
 
 def check_is_up_to_date(root: str) -> None:
     if not is_up_to_date(root):
-        message = (
-            "The current environment stored at {} is not up-to-date: it is at "
-            "v{} while the 'tutor' binary is at v{}. You should upgrade "
-            "the environment by running:\n"
-            "\n"
-            "    tutor config save"
-        )
         fmt.echo_alert(
-            message.format(base_dir(root), current_version(root), __version__)
+            f"The current environment stored at {base_dir(root)} is not up-to-date: it is at "
+            f"v{current_version(root)} while the 'tutor' binary is at v{__version__}. You should upgrade "
+            f"the environment by running:\n"
+            f"\n"
+            f"    tutor config save"
         )
 
 
@@ -316,36 +307,65 @@ def is_up_to_date(root: str) -> bool:
     """
     Check if the currently rendered version is equal to the current tutor version.
     """
-    return current_version(root) == __version__
+    current = current_version(root)
+    return current is None or current == __version__
 
 
-def needs_major_upgrade(root: str) -> bool:
+def should_upgrade_from_release(root: str) -> Optional[str]:
     """
-    Return the current version as a tuple of int. E.g: (1, 0, 2).
+    Return the name of the currently installed release that we should upgrade from. Return None If we already run the
+    latest release.
     """
-    current = int(current_version(root).split(".")[0])
-    required = int(__version__.split(".")[0])
-    return 0 < current < required
+    current = current_version(root)
+    if current is None:
+        return None
+    current_as_int = int(current.split(".")[0])
+    required_as_int = int(__version__.split(".", maxsplit=1)[0])
+    if current_as_int >= required_as_int:
+        return None
+    return get_release(current)
 
 
-def current_release(root: str) -> str:
+def get_env_release(root: str) -> Optional[str]:
     """
-    Return the name of the current Open edX release.
+    Return the Open edX release name from the current environment.
+
+    If the current environment has no version, return None.
     """
-    return {"0": "ironwood", "3": "ironwood", "10": "juniper", "11": "koa"}[
-        current_version(root).split(".")[0]
-    ]
+    version = current_version(root)
+    if version is None:
+        return None
+    return get_release(version)
 
 
-def current_version(root: str) -> str:
+def get_package_release() -> str:
+    """
+    Return the release name associated to this package.
+    """
+    return get_release(__version__)
+
+
+def get_release(version: str) -> str:
+    return {
+        "0": "ironwood",
+        "3": "ironwood",
+        "10": "juniper",
+        "11": "koa",
+        "12": "lilac",
+        "13": "maple",
+    }[version.split(".", maxsplit=1)[0]]
+
+
+def current_version(root: str) -> Optional[str]:
     """
     Return the current environment version. If the current environment has no version,
-    return "0.0.0".
+    return None.
     """
     path = pathjoin(root, VERSION_FILENAME)
     if not os.path.exists(path):
-        return "0.0.0"
-    return open(path).read().strip()
+        return None
+    with open(path, encoding="utf-8") as fi:
+        return fi.read().strip()
 
 
 def read_template_file(*path: str) -> str:
@@ -353,7 +373,7 @@ def read_template_file(*path: str) -> str:
     Read raw content of template located at `path`.
     """
     src = template_path(*path)
-    with codecs.open(src, encoding="utf-8") as fi:
+    with open(src, encoding="utf-8") as fi:
         return fi.read()
 
 

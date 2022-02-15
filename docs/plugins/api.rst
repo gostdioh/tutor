@@ -83,7 +83,7 @@ Example::
 
 During initialisation, "myservice1" and "myservice2" will be run in sequence with the commands defined in the templates ``myplugin/hooks/myservice1/init`` and ``myplugin/hooks/myservice2/init``.
 
-To initialise a "foo" service, Tutor runs the "foo-job" service that is found in the ``env/local/docker-compose.jobs.yml`` file. By default, Tutor comes with a few services in this file: mysql-job, lms-job, cms-job, forum-job. If your plugin requires running custom services during initialisation, you will need to add them to the ``docker-compose.jobs.yml`` template. To do so, just use the "local-docker-compose-jobs-services" patch.
+To initialise a "foo" service, Tutor runs the "foo-job" service that is found in the ``env/local/docker-compose.jobs.yml`` file. By default, Tutor comes with a few services in this file: mysql-job, lms-job, cms-job. If your plugin requires running custom services during initialisation, you will need to add them to the ``docker-compose.jobs.yml`` template. To do so, just use the "local-docker-compose-jobs-services" patch.
 
 In Kubernetes, the approach is the same, except that jobs are implemented as actual job objects in the ``k8s/jobs.yml`` template. To add your own services there, your plugin should implement the "k8s-jobs" patch.
 
@@ -176,20 +176,28 @@ When saving the environment, template files that are stored in a template root w
 command
 ~~~~~~~
 
-A plugin can provide custom command line commands. Commands are assumed to be `click.Command <https://click.palletsprojects.com/en/8.0.x/api/#commands>`__ objects.
+A plugin can provide custom command line commands. Commands are assumed to be `click.Command <https://click.palletsprojects.com/en/8.0.x/api/#commands>`__ objects, and you typically implement them using the `click.command <https://click.palletsprojects.com/en/8.0.x/api/#click.command>`__ decorator.
+
+You may also use the `click.pass_obj <https://click.palletsprojects.com/en/8.0.x/api/#click.pass_obj>`__ decorator to pass the CLI `context <https://click.palletsprojects.com/en/8.0.x/api/#click.Context>`__, such as when you want to access Tutor configuration settings from your command.
 
 Example::
 
     import click
+    from tutor import config as tutor_config
 
     @click.command(help="I'm a plugin command")
-    def command():
+    @click.pass_obj
+    def command(context):
+        config = tutor_config.load(context.root)
+        lms_host = config["LMS_HOST"]
         click.echo("Hello from myplugin!")
+        click.echo(f"My LMS host is {lms_host}")
 
 Any user who installs the ``myplugin`` plugin can then run::
 
     $ tutor myplugin
     Hello from myplugin!
+    My LMS host is demo.openedx.overhang.io
 
 You can even define subcommands by creating `command groups <https://click.palletsprojects.com/en/8.0.x/api/#click.Group>`__::
 

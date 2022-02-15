@@ -1,15 +1,19 @@
+import json
+import os
 import unittest
 from unittest.mock import Mock, patch
-import tempfile
 
+import click
+
+from tests.helpers import temporary_root
 from tutor import config as tutor_config
 from tutor import interactive
-from tutor.types import get_typed, Config
+from tutor.types import Config, get_typed
 
 
 class ConfigTests(unittest.TestCase):
     def test_version(self) -> None:
-        defaults = tutor_config.load_defaults()
+        defaults = tutor_config.get_defaults({})
         self.assertNotIn("TUTOR_VERSION", defaults)
 
     def test_merge(self) -> None:
@@ -18,57 +22,81 @@ class ConfigTests(unittest.TestCase):
         tutor_config.merge(config1, config2)
         self.assertEqual({"x": "y"}, config1)
 
-    def test_merge_render(self) -> None:
+    def test_merge_not_render(self) -> None:
         config: Config = {}
-        defaults = tutor_config.load_defaults()
+        base = tutor_config.get_base({})
         with patch.object(tutor_config.utils, "random_string", return_value="abcd"):
-            tutor_config.merge(config, defaults)
+            tutor_config.merge(config, base)
 
-        self.assertEqual("abcd", config["MYSQL_ROOT_PASSWORD"])
+        # Check that merge does not perform a rendering
+        self.assertNotEqual("abcd", config["MYSQL_ROOT_PASSWORD"])
 
     @patch.object(tutor_config.fmt, "echo")
-    def test_update_twice(self, _: Mock) -> None:
-        with tempfile.TemporaryDirectory() as root:
-            tutor_config.update(root)
-            config1 = tutor_config.load_user(root)
-
-            tutor_config.update(root)
-            config2 = tutor_config.load_user(root)
+    def test_update_twice_should_return_same_config(self, _: Mock) -> None:
+        with temporary_root() as root:
+            config1 = tutor_config.load_minimal(root)
+            tutor_config.save_config_file(root, config1)
+            config2 = tutor_config.load_minimal(root)
 
         self.assertEqual(config1, config2)
 
     @patch.object(tutor_config.fmt, "echo")
     def test_removed_entry_is_added_on_save(self, _: Mock) -> None:
-        with tempfile.TemporaryDirectory() as root:
+        with temporary_root() as root:
             with patch.object(
                 tutor_config.utils, "random_string"
             ) as mock_random_string:
                 mock_random_string.return_value = "abcd"
-                config1, _defaults1 = tutor_config.load_all(root)
+                config1 = tutor_config.load_full(root)
                 password1 = config1["MYSQL_ROOT_PASSWORD"]
 
                 config1.pop("MYSQL_ROOT_PASSWORD")
                 tutor_config.save_config_file(root, config1)
 
                 mock_random_string.return_value = "efgh"
-                config2, _defaults2 = tutor_config.load_all(root)
+                config2 = tutor_config.load_full(root)
                 password2 = config2["MYSQL_ROOT_PASSWORD"]
 
         self.assertEqual("abcd", password1)
         self.assertEqual("efgh", password2)
 
-    def test_interactive_load_all(self) -> None:
-        with tempfile.TemporaryDirectory() as rootdir:
-            config, defaults = interactive.load_all(rootdir, interactive=False)
+    def test_interactive(self) -> None:
+        def mock_prompt(*_args: None, **kwargs: str) -> str:
+            return kwargs["default"]
+
+        with temporary_root() as rootdir:
+            with patch.object(click, "prompt", new=mock_prompt):
+                with patch.object(click, "confirm", new=mock_prompt):
+                    config = interactive.load_user_config(rootdir, interactive=True)
 
         self.assertIn("MYSQL_ROOT_PASSWORD", config)
         self.assertEqual(8, len(get_typed(config, "MYSQL_ROOT_PASSWORD", str)))
-        self.assertNotIn("LMS_HOST", config)
-        self.assertEqual("www.myopenedx.com", defaults["LMS_HOST"])
-        self.assertEqual("studio.{{ LMS_HOST }}", defaults["CMS_HOST"])
+        self.assertEqual("www.myopenedx.com", config["LMS_HOST"])
+        self.assertEqual("studio.www.myopenedx.com", config["CMS_HOST"])
 
     def test_is_service_activated(self) -> None:
         config: Config = {"RUN_SERVICE1": True, "RUN_SERVICE2": False}
-
         self.assertTrue(tutor_config.is_service_activated(config, "service1"))
         self.assertFalse(tutor_config.is_service_activated(config, "service2"))
+
+    @patch.object(tutor_config.fmt, "echo")
+    def test_json_config_is_overwritten_by_yaml(self, _: Mock) -> None:
+        with temporary_root() as root:
+            # Create config from scratch
+            config_yml_path = os.path.join(root, tutor_config.CONFIG_FILENAME)
+            config_json_path = os.path.join(
+                root, tutor_config.CONFIG_FILENAME.replace("yml", "json")
+            )
+            config = tutor_config.load_full(root)
+
+            # Save config to json
+            with open(config_json_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, ensure_ascii=False, indent=4)
+            self.assertFalse(os.path.exists(config_yml_path))
+            self.assertTrue(os.path.exists(config_json_path))
+
+            # Reload and compare
+            current = tutor_config.load_full(root)
+            self.assertTrue(os.path.exists(config_yml_path))
+            self.assertFalse(os.path.exists(config_json_path))
+            self.assertEqual(config, current)
