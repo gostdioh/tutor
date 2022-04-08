@@ -2,7 +2,7 @@ import os
 
 # Increment this version number to trigger a new release. See
 # docs/tutor.html#versioning for information on the versioning scheme.
-__version__ = "13.1.5"
+__version__ = "13.1.9"
 
 # The version suffix will be appended to the actual version, separated by a
 # dash. Use this suffix to differentiate between the actual released version and
@@ -17,6 +17,11 @@ __version_suffix__ = ""
 # versions, if it is defined the version suffix will also be appended to the app
 # name.
 __app__ = os.environ.get("TUTOR_APP", "tutor")
+
+# Package version, as installed by pip, does not include the version suffix.
+# Otherwise, nightly plugins will automatically install non-nightly Tutor
+# version.
+__package_version__ = __version__
 
 if __version_suffix__:
     __version__ += "-" + __version_suffix__
